@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Times Tables Trainer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0e0e14;
+    --surface: #16161f;
+    --card: #1c1c28;
+    --border: #2a2a3a;
+    --accent: #7c6fff;
+    --accent2: #ff6f91;
+    --green: #4fffb0;
+    --yellow: #ffd166;
+    --text: #e8e8f0;
+    --muted: #6b6b88;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  header h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(120deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 6px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 5px;
+    margin-bottom: 28px;
+  }
+
+  .tab {
+    padding: 8px 20px;
+    border-radius: 50px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* ── TABLE VIEW ── */
+  .table-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 6px;
+    max-width: 680px;
+    width: 100%;
+  }
+
+  .table-selector {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .tbl-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tbl-btn.active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 16px rgba(124,111,255,0.4);
+  }
+
+  .table-display {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .table-display h2 {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .table-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .table-row:last-child { border-bottom: none; }
+
+  .table-row .eq { color: var(--muted); font-size: 1.05rem; }
+  .table-row .result { color: var(--green); font-size: 1.15rem; font-weight: 700; }
+  .table-row .mult { color: var(--text); font-size: 1.05rem; }
+
+  /* ── QUIZ VIEW ── */
+  .quiz-wrap {
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .score-bar {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .score-pill {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 8px 18px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .score-pill .val { font-weight: 700; font-size: 1rem; }
+  .score-pill.correct .val { color: var(--green); }
+  .score-pill.wrong .val { color: var(--accent2); }
+  .score-pill.streak .val { color: var(--yellow); }
+
+  .question-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 36px 28px;
+    text-align: center;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .question-card::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(124,111,255,0.15), transparent 70%);
+    pointer-events: none;
+  }
+
+  .question-label {
+    color: var(--muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .question-text {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(2.4rem, 8vw, 3.4rem);
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .question-text .op { color: var(--muted); }
+  .question-text .blank {
+    color: var(--accent);
+    border-bottom: 3px solid var(--accent);
+    min-width: 48px;
+    display: inline-block;
+  }
+
+  .feedback {
+    height: 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .feedback.correct { color: var(--green); }
+  .feedback.wrong { color: var(--accent2); }
+
+  .answer-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: 100%;
+  }
+
+  .answer-btn {
+    padding: 16px 0;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 1.25rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .answer-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(124,111,255,0.12);
+    transform: translateY(-2px);
+  }
+
+  .answer-btn.correct-ans {
+    border-color: var(--green);
+    background: rgba(79,255,176,0.15);
+    color: var(--green);
+  }
+
+  .answer-btn.wrong-ans {
+    border-color: var(--accent2);
+    background: rgba(255,111,145,0.12);
+    color: var(--accent2);
+  }
+
+  .answer-btn:disabled { cursor: default; }
+
+  .mode-options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .mode-btn {
+    flex: 1;
+    min-width: 110px;
+    padding: 10px 8px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .mode-btn.active {
+    border-color: var(--yellow);
+    color: var(--yellow);
+    background: rgba(255,209,102,0.08);
+  }
+
+  /* ── PROGRESS VIEW ── */
+  .progress-wrap {
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .progress-wrap h2 {
+    font-family: 'Space Mono', monospace;
+    font-size: 1rem;
+    color: var(--muted);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .progress-table {
+    display: grid;
+    grid-template-columns: auto repeat(9, 1fr);
+    gap: 4px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    overflow-x: auto;
+  }
+
+  .ph { /* placeholder */ }
+
+  .prog-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-weight: 700;
+    padding: 4px;
+  }
+
+  .prog-cell {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 36px;
+    min-height: 36px;
+    cursor: default;
+    transition: transform 0.1s;
+    position: relative;
+  }
+
+  .prog-cell:hover { transform: scale(1.15); z-index: 1; }
+
+  .prog-cell.none { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+  .prog-cell.good { background: rgba(79,255,176,0.2); color: var(--green); border: 1px solid rgba(79,255,176,0.3); }
+  .prog-cell.mid  { background: rgba(255,209,102,0.2); color: var(--yellow); border: 1px solid rgba(255,209,102,0.3); }
+  .prog-cell.bad  { background: rgba(255,111,145,0.2); color: var(--accent2); border: 1px solid rgba(255,111,145,0.3); }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 16px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+
+  .pop { animation: pop 0.25s ease; }
+
+  @media (max-width: 480px) {
+    .answer-grid { grid-template-columns: repeat(3, 1fr); }
+    .prog-cell { min-width: 28px; min-height: 28px; font-size: 0.55rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>× Times Tables ×</h1>
+  <p>Master 1–9 multiplication</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('learn')">Learn</button>
+  <button class="tab" onclick="showTab('quiz')">Quiz</button>
+  <button class="tab" onclick="showTab('progress')">Progress</button>
+</div>
+
+<!-- LEARN TAB -->
+<div id="tab-learn" class="tab-content">
+  <div class="table-selector" id="tableSelector"></div>
+  <div class="table-display" id="tableDisplay"></div>
+</div>
+
+<!-- QUIZ TAB -->
+<div id="tab-quiz" class="tab-content" style="display:none">
+  <div class="quiz-wrap">
+    <div class="mode-options">
+      <button class="mode-btn active" onclick="setMode('all')" id="mode-all">All tables</button>
+      <button class="mode-btn" onclick="setMode('choose')" id="mode-choose">Pick tables</button>
+    </div>
+    <div id="tablePicker" style="display:none">
+      <div class="table-selector" id="quizTableSelector"></div>
+    </div>
+    <div class="score-bar">
+      <div class="score-pill correct">✓ <span class="val" id="scoreCorrect">0</span></div>
+      <div class="score-pill wrong">✗ <span class="val" id="scoreWrong">0</span></div>
+      <div class="score-pill streak">🔥 <span class="val" id="scoreStreak">0</span></div>
+    </div>
+    <div class="question-card">
+      <div class="question-label">What is the answer?</div>
+      <div class="question-text" id="questionText"></div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+    <div class="answer-grid" id="answerGrid"></div>
+  </div>
+</div>
+
+<!-- PROGRESS TAB -->
+<div id="tab-progress" class="tab-content" style="display:none">
+  <div class="progress-wrap">
+    <h2>Your accuracy per multiplication</h2>
+    <div class="progress-table" id="progressTable"></div>
+    <div class="legend">
+      <span><div class="dot" style="background:rgba(79,255,176,0.4)"></div>≥ 80%</span>
+      <span><div class="dot" style="background:rgba(255,209,102,0.4)"></div>40–79%</span>
+      <span><div class="dot" style="background:rgba(255,111,145,0.4)"></div>< 40%</span>
+      <span><div class="dot" style="background:var(--surface);border:1px solid var(--border)"></div>Untried</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── STATE ──
+  const stats = JSON.parse(localStorage.getItem('ttStats') || '{}');
+  // stats[`${a}x${b}`] = { correct, total }
+  let quizMode = 'all';
+  let selectedTables = new Set([1,2,3,4,5,6,7,8,9]);
+  let currentQ = null;
+  let answered = false;
+  let correct = 0, wrong = 0, streak = 0;
+  let currentLearnTable = 1;
+
+  // ── UTILS ──
+  function saveStats() { localStorage.setItem('ttStats', JSON.stringify(stats)); }
+
+  function recordAnswer(a, b, wasCorrect) {
+    const key = `${a}x${b}`;
+    if (!stats[key]) stats[key] = { correct: 0, total: 0 };
+    stats[key].total++;
+    if (wasCorrect) stats[key].correct++;
+    saveStats();
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // ── TABS ──
+  function showTab(name) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    document.getElementById(`tab-${name}`).style.display = 'flex';
+    document.getElementById(`tab-${name}`).style.flexDirection = 'column';
+    document.getElementById(`tab-${name}`).style.alignItems = 'center';
+    event.target.classList.add('active');
+    if (name === 'quiz') nextQuestion();
+    if (name === 'progress') renderProgress();
+  }
+
+  // ── LEARN ──
+  function buildTableSelector() {
+    const sel = document.getElementById('tableSelector');
+    for (let i = 1; i <= 9; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'tbl-btn' + (i === 1 ? ' active' : '');
+      btn.textContent = i;
+      btn.onclick = () => {
+        document.querySelectorAll('#tableSelector .tbl-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentLearnTable = i;
+        renderTable(i);
+      };
+      sel.appendChild(btn);
+    }
+    renderTable(1);
+  }
+
+  function renderTable(n) {
+    const display = document.getElementById('tableDisplay');
+    display.innerHTML = `<h2>${n} × ? = ?</h2>`;
+    for (let i = 1; i <= 9; i++) {
+      const row = document.createElement('div');
+      row.className = 'table-row';
+      row.innerHTML = `
+        <span class="mult">${n} × ${i}</span>
+        <span class="eq">=</span>
+        <span class="result">${n * i}</span>
+      `;
+      display.appendChild(row);
+    }
+  }
+
+  // ── QUIZ ──
+  function buildQuizTableSelector() {
+    const sel = document.getElementById('quizTableSelector');
+    for (let i = 1; i <= 9; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'tbl-btn active';
+      btn.textContent = i;
+      btn.onclick = () => {
+        if (selectedTables.has(i) && selectedTables.size > 1) {
+          selectedTables.delete(i);
+          btn.classList.remove('active');
+        } else if (!selectedTables.has(i)) {
+          selectedTables.add(i);
+          btn.classList.add('active');
+        }
+      };
+      sel.appendChild(btn);
+    }
+  }
+
+  function setMode(m) {
+    quizMode = m;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`mode-${m}`).classList.add('active');
+    document.getElementById('tablePicker').style.display = m === 'choose' ? 'block' : 'none';
+  }
+
+  function generateQuestion() {
+    let pool;
+    if (quizMode === 'all') {
+      pool = [];
+      for (let a = 1; a <= 9; a++)
+        for (let b = 1; b <= 9; b++) pool.push([a, b]);
+    } else {
+      pool = [];
+      selectedTables.forEach(a => {
+        for (let b = 1; b <= 9; b++) pool.push([a, b]);
+      });
+    }
+    // Weight: prefer less-practiced and worse accuracy
+    const weighted = pool.map(([a, b]) => {
+      const key = `${a}x${b}`;
+      const s = stats[key];
+      if (!s || s.total === 0) return { a, b, w: 3 };
+      const acc = s.correct / s.total;
+      return { a, b, w: acc < 0.5 ? 3 : acc < 0.8 ? 1.5 : 0.5 };
+    });
+    const total = weighted.reduce((s, x) => s + x.w, 0);
+    let r = Math.random() * total;
+    let chosen = weighted[0];
+    for (const item of weighted) {
+      r -= item.w;
+      if (r <= 0) { chosen = item; break; }
+    }
+    return chosen;
+  }
+
+  function nextQuestion() {
+    answered = false;
+    currentQ = generateQuestion();
+    const { a, b } = currentQ;
+    const answer = a * b;
+
+    // Wrong choices: nearby products, random in range
+    const wrongs = new Set();
+    const tries = [answer - 1, answer + 1, answer - a, answer + a, answer - b, answer + b,
+                   answer + 2, answer - 2, answer * 2];
+    for (const t of shuffle(tries)) {
+      if (t > 0 && t !== answer) { wrongs.add(t); if (wrongs.size === 3) break; }
+    }
+    while (wrongs.size < 3) {
+      const rnd = Math.floor(Math.random() * 81) + 1;
+      if (rnd !== answer) wrongs.add(rnd);
+    }
+
+    const choices = shuffle([answer, ...[...wrongs].slice(0, 3)]);
+
+    document.getElementById('questionText').innerHTML =
+      `<span>${a}</span><span class="op"> × </span><span>${b}</span><span class="op"> = </span><span class="blank">?</span>`;
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+
+    const grid = document.getElementById('answerGrid');
+    grid.innerHTML = '';
+    choices.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'answer-btn';
+      btn.textContent = c;
+      btn.onclick = () => handleAnswer(c, answer, btn);
+      grid.appendChild(btn);
+    });
+  }
+
+  function handleAnswer(chosen, answer, btn) {
+    if (answered) return;
+    answered = true;
+    const wasCorrect = chosen === answer;
+
+    recordAnswer(currentQ.a, currentQ.b, wasCorrect);
+
+    const grid = document.getElementById('answerGrid');
+    grid.querySelectorAll('.answer-btn').forEach(b => {
+      b.disabled = true;
+      if (parseInt(b.textContent) === answer) b.classList.add('correct-ans');
+    });
+
+    const fb = document.getElementById('feedback');
+    if (wasCorrect) {
+      btn.classList.add('pop');
+      correct++;
+      streak++;
+      fb.textContent = ['Nice! ✓', 'Correct! ✓', 'Perfect! ✓', 'Great! ✓'][Math.floor(Math.random()*4)];
+      fb.className = 'feedback correct';
+    } else {
+      btn.classList.add('wrong-ans');
+      wrong++;
+      streak = 0;
+      fb.textContent = `${currentQ.a} × ${currentQ.b} = ${answer}`;
+      fb.className = 'feedback wrong';
+    }
+
+    document.getElementById('scoreCorrect').textContent = correct;
+    document.getElementById('scoreWrong').textContent = wrong;
+    document.getElementById('scoreStreak').textContent = streak;
+
+    setTimeout(nextQuestion, wasCorrect ? 900 : 1600);
+  }
+
+  // ── PROGRESS ──
+  function renderProgress() {
+    const container = document.getElementById('progressTable');
+    container.innerHTML = '';
+
+    // Header row
+    container.appendChild(Object.assign(document.createElement('div'), { className: 'prog-label ph' }));
+    for (let b = 1; b <= 9; b++) {
+      const lbl = document.createElement('div');
+      lbl.className = 'prog-label';
+      lbl.textContent = b;
+      container.appendChild(lbl);
+    }
+
+    for (let a = 1; a <= 9; a++) {
+      const rowLabel = document.createElement('div');
+      rowLabel.className = 'prog-label';
+      rowLabel.textContent = a;
+      container.appendChild(rowLabel);
+
+      for (let b = 1; b <= 9; b++) {
+        const key = `${a}x${b}`;
+        const s = stats[key];
+        const cell = document.createElement('div');
+        cell.className = 'prog-cell';
+        cell.title = `${a} × ${b} = ${a*b}`;
+
+        if (!s || s.total === 0) {
+          cell.className += ' none';
+          cell.textContent = a*b;
+        } else {
+          const acc = s.correct / s.total;
+          cell.className += acc >= 0.8 ? ' good' : acc >= 0.4 ? ' mid' : ' bad';
+          cell.textContent = Math.round(acc * 100) + '%';
+        }
+        container.appendChild(cell);
+      }
+    }
+  }
+
+  // ── INIT ──
+  buildTableSelector();
+  buildQuizTableSelector();
+  nextQuestion();
+</script>
+</body>
+</html>
